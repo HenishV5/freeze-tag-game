@@ -1,0 +1,18 @@
+package messages;
+
+struct agents {
+    string uuid;
+    double id;
+    double position[2];
+    boolean freeze;
+}
+
+struct freezeCommand {
+    double id;
+    boolean freeze;
+}
+
+struct agentPos {
+    double id;
+    double position[2];    
+}
