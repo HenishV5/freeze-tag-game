@@ -11,13 +11,13 @@ class freezeCommand(object):
 
     __slots__ = ["id"]
 
-    __typenames__ = ["double"]
+    __typenames__ = ["string"]
 
     __dimensions__ = [None]
 
     def __init__(self):
-        self.id = 0.0
-        """ LCM Type: double """
+        self.id = ""
+        """ LCM Type: string """
 
     def encode(self):
         buf = BytesIO()
@@ -26,7 +26,10 @@ class freezeCommand(object):
         return buf.getvalue()
 
     def _encode_one(self, buf):
-        buf.write(struct.pack(">d", self.id))
+        __id_encoded = self.id.encode('utf-8')
+        buf.write(struct.pack('>I', len(__id_encoded)+1))
+        buf.write(__id_encoded)
+        buf.write(b"\0")
 
     @staticmethod
     def decode(data: bytes):
@@ -41,13 +44,14 @@ class freezeCommand(object):
     @staticmethod
     def _decode_one(buf):
         self = freezeCommand()
-        self.id = struct.unpack(">d", buf.read(8))[0]
+        __id_len = struct.unpack('>I', buf.read(4))[0]
+        self.id = buf.read(__id_len)[:-1].decode('utf-8', 'replace')
         return self
 
     @staticmethod
     def _get_hash_recursive(parents):
         if freezeCommand in parents: return 0
-        tmphash = (0x688d822527137c8) & 0xffffffffffffffff
+        tmphash = (0x697dd1f597339c8) & 0xffffffffffffffff
         tmphash  = (((tmphash<<1)&0xffffffffffffffff) + (tmphash>>63)) & 0xffffffffffffffff
         return tmphash
     _packed_fingerprint = None

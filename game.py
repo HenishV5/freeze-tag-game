@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import multiprocessing
+import concurrent.futures
 import argparse
 from node import Node
 import numpy as np
@@ -8,209 +9,317 @@ import random
 import tkinter as tk
 from messages import agents
 from messages import freezeCommand
+from messages import start_stop
 import uuid
 
 
 
+#Game Class
 class Game(Node):
-    def __init__(self, width, height, notitPos, itPos):
+    #Initializing Required Global Parameters
+    def __init__(self, width, height, notitPos, itPos, num_not_it, debug_mode):
         super().__init__()
-
-        # Parameter Initialization
+        #Map and Agent Position Parameters
         self.width = width
         self.height = height
-        self.notitAgent_Pos = notitPos
-        self.itAgent_Pos = itPos
+        self.notitPos = notitPos
+        self.itPos = itPos
+        self.num_not_it = num_not_it
+        
+        #Debug Mode Parameter
+        self.debug_mode = debug_mode
+
+        #Storing Process
+        self.processes = []
+
+        #Status Management
+        self.active_status = []
+
+        
+
 
     def on_start(self):
-        self.agentUUIDs = {}
-        self.allAgents_Pos = {}
-
-        # Process Store
-        processes = []
-
-        # Creating IT Agent
-        itAgentMessage = agents()
-        itAgentMessage.id = -1
-        itAgentMessage.uuid = str(uuid.uuid4())
-        itAgentMessage.position = [self.itAgent_Pos[0], self.itAgent_Pos[1]]
-        itAgentMessage.freeze = False
-
-        self.agentUUIDs[-1] = itAgentMessage.uuid
-        self.allAgents_Pos[-1] = [self.itAgent_Pos[0], self.itAgent_Pos[1]]
-
-        notitAgents = []
-        # Creating Not It Agents
-        for i, pos in enumerate(self.notitAgent_Pos):
-            notitAgentMessage = agents()
-            notitAgentMessage.id = i
-            notitAgentMessage.uuid = str(uuid.uuid4())
-            notitAgentMessage.position = [pos[0], pos[1]]
-            notitAgentMessage.freeze = False
-            notitAgents.append(notitAgentMessage)
-            # Create Not It Node
-
-            self.agentUUIDs[i] = notitAgentMessage.uuid
-            self.allAgents_Pos[i] = [pos[0], pos[1]]
-            
-        notitNodes = []
-        # Creating Not It Nodes
-        for agent in notitAgents:
-            notitNode = NotIt(agent, self.width, self.height)
-            notitNodes.append(notitNode)
-
-        # Creating Subscribers
-        self.subscribe("NotItTopic", self.agents_handler)
-        self.subscribe("ItTopic", self.agents_handler)
+        if self.debug_mode == True:
+            print("Game Started...Initializing Agents")
         
-        # Creating IT Node
-        itNode = It(itAgentMessage, self.width, self.height)
-        
-        # Launching Not It Nodes
-        for node in notitNodes:
-            node.process = multiprocessing.Process(target=node.launch_node, name="Not It Node")
-            node.process.start()
-            processes.append(node.process)
+        #Agents
+        self.agents = {}
 
-        # Launching IT Node
-        itNode.process = multiprocessing.Process(target=itNode.launch_node, name="It Node")
-        itNode.process.start()
-        processes.append(itNode.process)
-            
+        #Storing Process
+        self.processes = []
+
+        #Creating Not IT Agents Message
+        for i in range(self.num_not_it):
+            notitAgent = agents()
+            notitAgent.uuid = str(uuid.uuid1())
+            notitAgent.id = i
+            notitAgent.position = [self.notitPos[i][0], self.notitPos[i][1]]
+            notitAgent.freeze = False
+            self.agents[notitAgent.uuid] = notitAgent
+            #self.active_status.append(notitAgent.uuid)
+        
+        self.nodes = []
+        #Creating Not IT Agents
+        for i in self.agents:
+            notit_agent = NotITAgent(self.agents[i], self.width, self.height, self.debug_mode)
+            self.nodes.append(notit_agent)            
+        
+
+
+        #Creating IT Agent Message
+        itAgent = agents()
+        itAgent.uuid = str(uuid.uuid1())
+        self.itAgent_uuid = itAgent.uuid
+        itAgent.id = -1.0
+        itAgent.position = [self.itPos[0], self.itPos[1]]
+        itAgent.freeze = False
+        self.agents[itAgent.uuid] = itAgent
+        self.active_status.append(itAgent.uuid)
+
+        #Subscribing to Topics
+        self.subscribe("NotItTopic", self.agent_handlers)
+        self.subscribe("ItTopic", self.agent_handlers)
+        
+        #Creating IT Agents
+        it_agent = ITAgent(itAgent, self.width, self.height, self.debug_mode)
+        self.nodes.append(it_agent)
+
+        self.gui = Grid(self.width, self.height, self.itPos, self.notitPos)
+        self.gui.update_grid(self.agents)
+        time.sleep(5)
+
+        
+
+        
+
+        
+
+
     def run(self):
-        gui = Grid(self.width, self.height, self.itAgent_Pos, self.notitAgent_Pos)
-        while True:
-            # Update GUI with current positions
-            gui.update_grid(self.allAgents_Pos)
-            for key, value in self.allAgents_Pos.items():
-                if key == -1:
-                    continue
-                if self.allAgents_Pos[-1] == value:
-                    freezeMsg = freezeCommand()
-                    freezeMsg.id = key
-                    self.publish("freezeAgent", freezeMsg)
-            time.sleep(0.1)
+        try:
+            #Starting Agents
+            for node in self.nodes:
+                process = multiprocessing.Process(target=node.launch_node, name=f"Agent Node {node.agentid}")
+                if self.debug_mode == True:
+                    print(f"Starting Agent {node.agentid}")
+                process.start()
+                self.processes.append(process)
+            flag = True
+            while flag == True:
+                #Updating GUI Every Run
+                self.gui.update_grid(self.agents)
+                #print("Updating GUI")
+
+
+                msg = start_stop()
+                msg.start = True
+                self.publish("Start_Stop", msg)
+                
+                count = 0
+                #Checking for Freeze
+                for key, value in self.agents.items():
+                    if value.freeze == True:
+                        count += 1
+                    if count == self.num_not_it:
+                        flag = False
+                    if value.id == -1.0:
+                        continue
+                    else:
+                        if self.agents[self.itAgent_uuid].position == value.position:
+                            freezeMsg = freezeCommand()
+                            freezeMsg.id = key
+                            self.publish("FreezeTopic", freezeMsg)
+                time.sleep(0.1)
+                    
+
+
+
+        except Exception as e:
+            print(f"Error running the game: {e}")
 
     def on_stop(self):
-        pass
+        try:
+            for process in self.processes:
+                if process.is_alive():
+                    process.terminate()
+                    process.join()
+            print("Game Stopped...Agents Terminated")
+            self.active_status.clear()
+            self.agents.clear()
+        except Exception as e:
+            print(f"Error stopping the game: {e}")
 
-    def agents_handler(self, topic, message):
+    def agent_handlers(self, topic, message):
         message = agents.decode(message)
-        if self.agentUUIDs[message.id] != message.uuid:
-            self.agentUUIDs[message.id] = message.uuid
-            self.allAgents_Pos[message.id] = [message.position[0], message.position[1]]
-            print("Agent ID: ", message.id, "Agent UUID: ", message.uuid,
-                  "Agent Position: ", message.position, "Agent Freeze: ", message.freeze)
+        if message.uuid in self.agents:
+            self.agents[message.uuid] = message
+            if self.debug_mode == True:
+                print(f"Agent {message.id} Position Updated: {message.position}")
+            
+
+    def active_status_management(self):
+        pass
+        
+        
+    
 
 
 
-class It(Node):
-    def __init__(self, agentInfo, width, height):
+class ITAgent(Node):
+    def __init__(self, agent, width, height, debug_mode):
         super().__init__()
-        self.agentID = agentInfo.id
-        self.agentUUID = agentInfo.uuid
-        self.agentPosition = [agentInfo.position[0], agentInfo.position[1]]
-        self.agentFreeze = agentInfo.freeze
+        self.agentuuid = agent.uuid
+        self.agentid = agent.id
+        self.agentpos = [agent.position[0], agent.position[1]]
+        self.agentFreeze = agent.freeze
         self.width = width
         self.height = height
-        self.notitAgents_Pos = {}
-        self.kill = False
+        self.debug_mode = debug_mode
+        self.freeze = False
+        self.start = False
+        self.notitAgentsPos = {}
 
     def on_start(self):
-        self.subscribe("NotItTopic", self.notit_handler)
+        self.subscribe("Start_Stop", self.start_call)
+        self.subscribe("NotItTopic", self.getNotItPositions)
 
     def run(self):
         while True:
             message = agents()
-            message.id = self.agentID
-            message.uuid = str(uuid.uuid4())
-            self.make_move()
-            message.position = self.agentPosition
-            message.freeze = self.agentFreeze
-            
-            # Publishing the ItAgent Message
-            self.publish("ItTopic", message)
-            time.sleep(0.5)
+            if self.start == True:
+                self.make_move()
+                message.uuid = self.agentuuid
+                message.id = self.agentid
+                message.position = [self.agentpos[0], self.agentpos[1]]
+                message.freeze = self.agentFreeze
+                self.publish("ItTopic", message)
+                time.sleep(0.5)
+                if len(self.notitAgentsPos) == 0:
+                    print("All Not It Agents Caught")
+                    break
 
     def on_stop(self):
         pass
 
-    def notit_handler(self, topic, message):
+    def start_call(self, topic, message):
+        message = start_stop.decode(message)
+        if message.start:
+            self.start = True
+
+    def getNotItPositions(self, topic, message):
         message = agents.decode(message)
-        self.notitAgents_Pos[message.id] = [message.position[0], message.position[1], message.freeze]
+        self.notitAgentsPos[message.uuid] = [message.position[0], message.position[1], message.freeze]
+        
 
     def make_move(self):
         minimum_distance = float('inf')
         closest_position = None
         keys_to_remove = []
-        for key, value in self.notitAgents_Pos.items():
+        for key, value in self.notitAgentsPos.items():
             # If the not-it agent is frozen or has been caught (position equal to IT), mark for removal
-            if value[2] == True or self.agentPosition == value[:2]:
+            if value[2] == True or self.agentpos == value[:2]:
                 keys_to_remove.append(key)
                 continue
-            distance = abs(self.agentPosition[0] - value[0]) + abs(self.agentPosition[1] - value[1])
+            distance = abs(self.agentpos[0] - value[0]) + abs(self.agentpos[1] - value[1])
             if distance < minimum_distance:
                 minimum_distance = distance
                 closest_position = value
         
         # Remove caught or frozen agents after the loop
         for key in keys_to_remove:
-            self.notitAgents_Pos.pop(key, None)
+            self.notitAgentsPos.pop(key, None)
         
         if closest_position is not None:    
-            if self.agentPosition[0] < closest_position[0]:
-                self.agentPosition[0] += 1
-            elif self.agentPosition[0] > closest_position[0]:
-                self.agentPosition[0] -= 1
-            elif self.agentPosition[1] < closest_position[1]:
-                self.agentPosition[1] += 1
-            elif self.agentPosition[1] > closest_position[1]:
-                self.agentPosition[1] -= 1
+            if self.agentpos[0] < closest_position[0]:
+                self.agentpos[0] += 1
+            elif self.agentpos[0] > closest_position[0]:
+                self.agentpos[0] -= 1
+            elif self.agentpos[1] < closest_position[1]:
+                self.agentpos[1] += 1
+            elif self.agentpos[1] > closest_position[1]:
+                self.agentpos[1] -= 1
+        
 
 
 
-class NotIt(Node):
-    def __init__(self, agentInfo, width, height):
+
+
+
+
+
+class NotITAgent(Node):
+    def __init__(self, agent, width, height, debug_mode):
         super().__init__()
-        self.agentID = agentInfo.id
-        self.agentUUID = agentInfo.uuid
-        self.agentPosition = [agentInfo.position[0], agentInfo.position[1]]
-        self.agentFreeze = agentInfo.freeze
-        self.move_options = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+        self.agentuuid = agent.uuid
+        self.agentid = agent.id
+        self.agentpos = [agent.position[0], agent.position[1]]
+        self.agentFreeze = agent.freeze
         self.width = width
         self.height = height
+        self.debug_mode = debug_mode
+        self.otherPos = {}
+        self.start = False
 
     def on_start(self):
-        pass
+        self.subscribe("Start_Stop", self.start_call)
+        self.subscribe("FreezeTopic", self.freeze_handler)
+        self.subscribe("NotItTopic", self.othernotit_agent_handler)
+        
+        
 
     def run(self):
         while True:
-            message = agents()
-            message.id = self.agentID
-            message.uuid = str(uuid.uuid4())
-            self.subscribe("freezeAgent", self.freeze)
-            message.freeze = self.agentFreeze
             if self.agentFreeze:
+                message = agents()
+                message.uuid = self.agentuuid
+                message.id = self.agentid
+                message.position = [self.agentpos[0], self.agentpos[1]]
+                message.freeze = True
+                self.publish("NotItTopic", message)
                 break
-            self.make_move()
-            message.position = self.agentPosition
-            
-            # Publishing the NotItAgent Message
-            self.publish("NotItTopic", message)
-            time.sleep(1)
+            if self.start:
+                self.make_move()
+                message = agents()
+                message.uuid = self.agentuuid
+                message.id = self.agentid
+                message.position = [self.agentpos[0], self.agentpos[1]]
+                message.freeze = self.agentFreeze
+                self.publish("NotItTopic", message)
+                time.sleep(1)
+
+    def othernotit_agent_handler(self, topic, message):
+        message = agents.decode(message)
+        if message.uuid != self.agentuuid:
+            self.otherPos[message.uuid] = message.position
+
+        
 
     def on_stop(self):
-        print(f"Stopping Not It Agent {self.agentID}")
+        pass
+
+    def freeze_handler(self, topic, message):
+        message = freezeCommand.decode(message)
+        if message.id == self.agentuuid:
+            if self.agentFreeze != True:
+                print(f"Agent {self.agentid} Freezed")
+                self.agentFreeze = True
+                
 
     def make_move(self):
-        movement = random.choice(self.move_options)
-        self.agentPosition[0] = max(0, min(self.agentPosition[0] + movement[0], self.width-1))
-        self.agentPosition[1] = max(0, min(self.agentPosition[1] + movement[1], self.height-1))
+        movement = random.choice([[0, 1], [0, -1], [1, 0], [-1, 0]])
+        if self.agentpos[0] + movement[0] >= 0 and self.agentpos[0] + movement[0] < self.width and self.agentpos[1] + movement[1] >= 0 and self.agentpos[1] + movement[1] < self.height:
+            self.agentpos[0] += movement[0]
+            self.agentpos[1] += movement[1]
+            for key, value in self.otherPos.items():
+                if self.agentpos[0] == value[0] and self.agentpos[1] == value[1]:
+                    self.agentpos[0] -= movement[0]
+                    self.agentpos[1] -= movement[1]
+                    break
     
-    def freeze(self, topic, message):
-        message = freezeCommand.decode(message)
-        if message.id == self.agentID:
-            self.agentFreeze = True
+    def start_call(self, topic, message):
+        message = start_stop.decode(message)
+        if message.start:
+            self.start = True
 
 
 class Grid(tk.Tk):
@@ -233,22 +342,22 @@ class Grid(tk.Tk):
 
         # Creating IT Agent
         self.itAgent = self.canvas.create_rectangle(self.itPos[0]*self.grid_size, self.itPos[1]*self.grid_size,
-                                                    self.itPos[0]*self.grid_size+self.grid_size, self.itPos[1]*self.grid_size+self.grid_size, fill="red")
+                                                    self.itPos[0]*self.grid_size+self.grid_size, self.itPos[1]*self.grid_size+self.grid_size, fill="green")
         # Creating Not IT Agents
         self.notitAgents = []
         for pos in self.notitPos:
             self.notitAgents.append(
-                self.canvas.create_rectangle(pos[0]*self.grid_size, pos[1]*self.grid_size, pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size, fill="blue")
+                self.canvas.create_rectangle(pos[0]*self.grid_size, pos[1]*self.grid_size, pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size, fill="red")
             )
 
-    def update_grid(self, agentPos):
+    def update_grid(self, agents):
         itPos = None
         notitPosList = []
-        for key, value in agentPos.items():
-            if key == -1:
-                itPos = value
+        for key, value in agents.items():
+            if value.id == -1:
+                itPos = [value.position[0], value.position[1]]
             else:
-                notitPosList.append(value)
+                notitPosList.append(value.position)
 
         if itPos is not None:
             self.canvas.coords(self.itAgent, itPos[0]*self.grid_size, itPos[1]*self.grid_size, itPos[0]*self.grid_size+self.grid_size, itPos[1]*self.grid_size+self.grid_size)
@@ -279,14 +388,16 @@ def main():
     parser.add_argument('--num-not-it', type=int, default=0, required=True, help='Number of Not It Players')
     parser.add_argument('--notitPos', type=int, nargs='+', required=True, help='Position of the not it player')
     parser.add_argument('--itPos', type=int, nargs='+', required=True, help='Position of the it player')
+    parser.add_argument('--debug', action='store_true', help='Debug Mode')
     args = parser.parse_args()
     width = args.width
     height = args.height
+    debug_mode = args.debug
     itPos = [args.itPos[0], args.itPos[1]]
     if (itPos[0]<0 or itPos[0]>=width) or (itPos[1]<0 or itPos[1]>=height):
         raise ValueError("Invalid IT Player Position")
         
-        
+    print(args.debug)
     notitPos = []
     for i in range(0, len(args.notitPos), 2):
         if (args.notitPos[i]<0 or args.notitPos[i]>=width) or (args.notitPos[i+1]<0 or args.notitPos[i+1]>=height):
@@ -295,10 +406,8 @@ def main():
     
     if(len(notitPos) != args.num_not_it):
         raise ValueError("Number of Not It Players and Not It Player Positions do not match")
-    game_node = Game(width, height, notitPos, itPos)
+    game_node = Game(width, height, notitPos, itPos, args.num_not_it, debug_mode)
     game_node.process = multiprocessing.Process(target=game_node.launch_node, name="Game Node")
     game_node.process.start()
-    game_node.process.join()
-
 if __name__ == '__main__':
     main()

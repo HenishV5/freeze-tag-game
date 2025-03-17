@@ -8,5 +8,9 @@ struct agents {
 }
 
 struct freezeCommand {
-    double id;
+    string id;
+}
+
+struct start_stop {
+    boolean start;
 }
