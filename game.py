@@ -265,12 +265,6 @@ class NotITAgent(Node):
     def run(self):
         while True:
             if self.agentFreeze:
-                message = agents()
-                message.uuid = self.agentuuid
-                message.id = self.agentid
-                message.position = [self.agentpos[0], self.agentpos[1]]
-                message.freeze = True
-                self.publish("NotItTopic", message)
                 break
             if self.start:
                 self.make_move()
@@ -295,9 +289,17 @@ class NotITAgent(Node):
     def freeze_handler(self, topic, message):
         message = freezeCommand.decode(message)
         if message.id == self.agentuuid:
-            if self.agentFreeze != True:
+            if not self.agentFreeze:
                 print(f"Agent {self.agentid} Freezed")
                 self.agentFreeze = True
+                # Immediately publish the frozen update
+                update_msg = agents()
+                update_msg.uuid = self.agentuuid
+                update_msg.id = self.agentid
+                update_msg.position = [self.agentpos[0], self.agentpos[1]]
+                update_msg.freeze = True
+                self.publish("NotItTopic", update_msg)
+
                 
 
     def make_move(self):
