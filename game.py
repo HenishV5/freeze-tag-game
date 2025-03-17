@@ -276,17 +276,25 @@ def main():
     parser = argparse.ArgumentParser(description='Freezer Tag Game')
     parser.add_argument('--width', type=int, default=0, required=True, help='Width of the game board')
     parser.add_argument('--height', type=int, default=0, required=True, help='Height of the game board')
+    parser.add_argument('--num-not-it', type=int, default=0, required=True, help='Number of Not It Players')
     parser.add_argument('--notitPos', type=int, nargs='+', required=True, help='Position of the not it player')
+    parser.add_argument('--itPos', type=int, nargs='+', required=True, help='Position of the it player')
     args = parser.parse_args()
     width = args.width
     height = args.height
-    if len(args.notitPos) % 2 != 0:
-        print("Invalid Position of Not It Player")
-        return
-    notitPos = [[args.notitPos[i], args.notitPos[i+1]] for i in range(0, len(args.notitPos), 2)]
-    itPos = notitPos[-1]
-    notitPos = notitPos[:-1]
-
+    itPos = [args.itPos[0], args.itPos[1]]
+    if (itPos[0]<0 or itPos[0]>=width) or (itPos[1]<0 or itPos[1]>=height):
+        raise ValueError("Invalid IT Player Position")
+        
+        
+    notitPos = []
+    for i in range(0, len(args.notitPos), 2):
+        if (args.notitPos[i]<0 or args.notitPos[i]>=width) or (args.notitPos[i+1]<0 or args.notitPos[i+1]>=height):
+            raise ValueError("Invalid NotIT Player Position")
+        notitPos.append([args.notitPos[i], args.notitPos[i+1]])
+    
+    if(len(notitPos) != args.num_not_it):
+        raise ValueError("Number of Not It Players and Not It Player Positions do not match")
     game_node = Game(width, height, notitPos, itPos)
     game_node.process = multiprocessing.Process(target=game_node.launch_node, name="Game Node")
     game_node.process.start()
