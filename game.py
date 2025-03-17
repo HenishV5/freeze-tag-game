@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 import multiprocessing
-import concurrent.futures
 import argparse
 from node import Node
-import numpy as np
 import time
 import random
 import tkinter as tk
-from messages import agents
-from messages import freezeCommand
-from messages import start_stop
+import tkinter.messagebox as messagebox
+from messages import agents, freezeCommand, start_stop
 import uuid
 
 
@@ -86,7 +83,7 @@ class Game(Node):
 
         self.gui = Grid(self.width, self.height, self.itPos, self.notitPos)
         self.gui.update_grid(self.agents)
-        time.sleep(5)
+        time.sleep(2)
 
         
 
@@ -130,9 +127,7 @@ class Game(Node):
                             freezeMsg.id = key
                             self.publish("FreezeTopic", freezeMsg)
                 time.sleep(0.1)
-                    
-
-
+            messagebox.showinfo("Game Over", "All NotIt agents are frozen")
 
         except Exception as e:
             print(f"Error running the game: {e}")
@@ -353,21 +348,30 @@ class Grid(tk.Tk):
     def update_grid(self, agents):
         itPos = None
         notitPosList = []
+        notitFreezeList = []
         for key, value in agents.items():
             if value.id == -1:
                 itPos = [value.position[0], value.position[1]]
             else:
                 notitPosList.append(value.position)
+                notitFreezeList.append(value.freeze)
 
         if itPos is not None:
-            self.canvas.coords(self.itAgent, itPos[0]*self.grid_size, itPos[1]*self.grid_size, itPos[0]*self.grid_size+self.grid_size, itPos[1]*self.grid_size+self.grid_size)
+            self.canvas.coords(self.itAgent,
+                            itPos[0]*self.grid_size, itPos[1]*self.grid_size,
+                            itPos[0]*self.grid_size+self.grid_size, itPos[1]*self.grid_size+self.grid_size)
 
         for i, pos in enumerate(notitPosList):
             if i < len(self.notitAgents):
-                self.canvas.coords(self.notitAgents[i], pos[0]*self.grid_size, pos[1]*self.grid_size, pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size)
+                self.canvas.coords(self.notitAgents[i],
+                                pos[0]*self.grid_size, pos[1]*self.grid_size,
+                                pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size)
+                # Change fill color: blue if frozen, red otherwise
+                fill_color = "blue" if notitFreezeList[i] else "red"
+                self.canvas.itemconfig(self.notitAgents[i], fill=fill_color)
 
-        # Optionally process pending events without causing recursion:
         tk.Tk.update_idletasks(self)
+
 
     def on_closing(self):
         self.destroy()
