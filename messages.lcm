@@ -9,10 +9,4 @@ struct agents {
 
 struct freezeCommand {
     double id;
-    boolean freeze;
-}
-
-struct agentPos {
-    double id;
-    double position[2];    
 }

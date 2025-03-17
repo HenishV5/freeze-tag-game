@@ -9,17 +9,15 @@ import struct
 
 class freezeCommand(object):
 
-    __slots__ = ["id", "freeze"]
+    __slots__ = ["id"]
 
-    __typenames__ = ["double", "boolean"]
+    __typenames__ = ["double"]
 
-    __dimensions__ = [None, None]
+    __dimensions__ = [None]
 
     def __init__(self):
         self.id = 0.0
         """ LCM Type: double """
-        self.freeze = False
-        """ LCM Type: boolean """
 
     def encode(self):
         buf = BytesIO()
@@ -28,7 +26,7 @@ class freezeCommand(object):
         return buf.getvalue()
 
     def _encode_one(self, buf):
-        buf.write(struct.pack(">db", self.id, self.freeze))
+        buf.write(struct.pack(">d", self.id))
 
     @staticmethod
     def decode(data: bytes):
@@ -44,13 +42,12 @@ class freezeCommand(object):
     def _decode_one(buf):
         self = freezeCommand()
         self.id = struct.unpack(">d", buf.read(8))[0]
-        self.freeze = bool(struct.unpack('b', buf.read(1))[0])
         return self
 
     @staticmethod
     def _get_hash_recursive(parents):
         if freezeCommand in parents: return 0
-        tmphash = (0x3a80f0ae7a19e92d) & 0xffffffffffffffff
+        tmphash = (0x688d822527137c8) & 0xffffffffffffffff
         tmphash  = (((tmphash<<1)&0xffffffffffffffff) + (tmphash>>63)) & 0xffffffffffffffff
         return tmphash
     _packed_fingerprint = None
