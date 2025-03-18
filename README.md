@@ -78,33 +78,45 @@ sudo apt install build-essential libglib2.0-dev
 brew install glib
 ```
 
-### Step 4: Set up Virtual Environment (Recommended)
+### Step 4: Set up Environment (Recommended)
 
-#### Ubuntu/Debian (and WSL)
+#### Option 1: Using Conda (Recommended)
 ```bash
-# First, install the required venv package (IMPORTANT!)
-sudo apt install python3-venv  # Use python3.X-venv where X is your Python version
+# Install Miniconda if you don't have it already
+# Linux/macOS
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+bash miniconda.sh -b -p $HOME/miniconda
+rm miniconda.sh
+export PATH="$HOME/miniconda/bin:$PATH"
+# or for Windows, download and run the installer from https://docs.conda.io/en/latest/miniconda.html
 
-# Then create and activate the virtual environment
-python3 -m venv freezetag_env
+# Create conda environment
+conda create -n freezetag_env python=3.10
+conda activate freezetag_env
+
+# Install dependencies
+pip install -r requirements.txt
+
+# If you encounter issues with LCM in conda, you may need:
+conda install -c conda-forge glib
+```
+
+#### Option 2: Using virtualenv
+```bash
+# Ubuntu/Debian (and WSL)
+sudo apt install python3-venv  # Use python3.X-venv where X is your Python version
+python3 -m pip install --user virtualenv
+virtualenv freezetag_env
 source freezetag_env/bin/activate
 
-# Alternative method using virtualenv if venv fails
+# macOS
 python3 -m pip install virtualenv
 virtualenv freezetag_env
 source freezetag_env/bin/activate
-```
 
-#### macOS
-```bash
-python3 -m venv freezetag_env
-source freezetag_env/bin/activate
-```
-
-#### Windows (if not using WSL)
-```bash
+# Windows (if not using WSL)
 pip install virtualenv
-python -m venv freezetag_env
+virtualenv freezetag_env
 freezetag_env\Scripts\activate
 ```
 
@@ -181,19 +193,22 @@ The game uses a distributed architecture where:
   - Check your version with `python --version` or `python3 --version`
   - If you have multiple Python versions, use the appropriate command (`python3` or `py -3`)
 
-- **Virtual Environment Creation Fails**
-  - On Ubuntu/Debian: `sudo apt install python3-venv` or `sudo apt install python3.X-venv` (where X is your Python version)
-  - If venv doesn't work, try using virtualenv instead: `pip install virtualenv && virtualenv freezetag_env`
+- **Environment Setup Problems**
+  - For virtual environment issues in Ubuntu/Debian: `sudo apt install python3-venv`
+  - If virtual environments fail consistently, try using Conda instead
+  - For Conda: ensure Conda is in your PATH with `export PATH="$HOME/miniconda/bin:$PATH"`
 
 - **LCM Installation Problems**
   - Ubuntu/Debian: `sudo apt install build-essential libglib2.0-dev`
   - macOS: `brew install glib`
+  - In Conda: `conda install -c conda-forge glib`
   - Windows: We strongly recommend using WSL instead of native Windows for LCM
 
 - **GUI Does Not Display**
   - Verify tkinter is installed: `python -m tkinter`
   - Ubuntu/Debian: `sudo apt install python3-tk`
   - macOS: `brew install python-tk`
+  - Conda: `conda install -c conda-forge tk`
   - WSL: Install an X server on Windows and export DISPLAY (e.g., `export DISPLAY=:0`)
 
 - **Agents Not Moving**

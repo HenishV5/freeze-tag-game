@@ -49,8 +49,6 @@ class ITAgent(Node):
         try:
             message = start_stop.decode(message)
             if message.start:
-                #Delaying the start of the IT agent to handle synchronization
-                time.sleep(0.5)
                 self.start = True
         except Exception as e:
             print(f"Error handling Getting Start Call: {e}")
@@ -67,7 +65,7 @@ class ITAgent(Node):
     def make_move(self):
         try:
             keys_to_remove = [
-                key for key, value in self.notitAgentsPos.items() if value[2] == True or self.agentpos == value[:2]
+                key for key, value in self.notitAgentsPos.items() if value[2] == True
             ]
 
             # Remove caught or frozen agents after the loop
