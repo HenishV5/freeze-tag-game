@@ -250,4 +250,4 @@ To add new agent behaviors or game mechanics:
 
 ## License
 
-[Your License Information]
+This project is licensed under the [MIT](https://github.com/HenishV5/coding_challenge/blob/main/LICENSE) License.
