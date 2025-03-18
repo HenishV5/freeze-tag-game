@@ -162,6 +162,8 @@ class Game(Node):
 
 
 
+import tkinter as tk
+
 class Grid(tk.Tk):
     def __init__(self, board_width, board_height, itPos, notitPos):
         tk.Tk.__init__(self)
@@ -181,7 +183,7 @@ class Grid(tk.Tk):
         
         # For a standard board of 50x50, we want grid size 15.
         if board_width == 50 and board_height == 50:
-            self.grid_size = 18
+            self.grid_size = 16
         else:
             self.grid_size = computed_size
 
