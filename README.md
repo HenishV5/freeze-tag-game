@@ -80,13 +80,29 @@ brew install glib
 
 ### Step 4: Set up Virtual Environment (Recommended)
 
+#### Ubuntu/Debian (and WSL)
 ```bash
-# Linux/macOS/WSL
-python3 -m pip install virtualenv
+# First, install the required venv package (IMPORTANT!)
+sudo apt install python3-venv  # Use python3.X-venv where X is your Python version
+
+# Then create and activate the virtual environment
 python3 -m venv freezetag_env
 source freezetag_env/bin/activate
 
-# Windows (if not using WSL)
+# Alternative method using virtualenv if venv fails
+python3 -m pip install virtualenv
+virtualenv freezetag_env
+source freezetag_env/bin/activate
+```
+
+#### macOS
+```bash
+python3 -m venv freezetag_env
+source freezetag_env/bin/activate
+```
+
+#### Windows (if not using WSL)
+```bash
 pip install virtualenv
 python -m venv freezetag_env
 freezetag_env\Scripts\activate
@@ -164,6 +180,10 @@ The game uses a distributed architecture where:
   - This project requires Python 3.6+
   - Check your version with `python --version` or `python3 --version`
   - If you have multiple Python versions, use the appropriate command (`python3` or `py -3`)
+
+- **Virtual Environment Creation Fails**
+  - On Ubuntu/Debian: `sudo apt install python3-venv` or `sudo apt install python3.X-venv` (where X is your Python version)
+  - If venv doesn't work, try using virtualenv instead: `pip install virtualenv && virtualenv freezetag_env`
 
 - **LCM Installation Problems**
   - Ubuntu/Debian: `sudo apt install build-essential libglib2.0-dev`
