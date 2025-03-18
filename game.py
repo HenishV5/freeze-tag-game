@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 import multiprocessing
 import argparse
-from node import Node
+from src.node import Node
 import time
 import random
 import tkinter as tk
 import tkinter.messagebox as messagebox
 from messages import agents, freezeCommand, start_stop
 import uuid
-from itagent import ITAgent
-from notitagent import NotITAgent
+from src.itagent import ITAgent
+from src.notitagent import NotITAgent
 
 
 

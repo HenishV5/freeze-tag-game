@@ -1,5 +1,5 @@
 import time
-from node import Node
+from src.node import Node
 from messages import agents, start_stop
 
 class ITAgent(Node):

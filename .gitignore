@@ -1,4 +1,7 @@
-/mylog.lcm
-/test.py
-/test_sub.py
-/temp.py
+__pycache__/itagent.cpython-310.pyc
+__pycache__/node.cpython-310.pyc
+__pycache__/notitagent.cpython-310.pyc
+src/__pycache__/itagent.cpython-310.pyc
+src/__pycache__/notitagent.cpython-310.pyc
+src/__pycache__/node.cpython-310.pyc
+.gitignore
