@@ -170,17 +170,16 @@ class Grid(tk.Tk):
     def __init__(self, board_width, board_height, itPos, notitPos):
         tk.Tk.__init__(self)
         
-        self.board_width = board_width   # Number of columns
-        self.board_height = board_height # Number of rows
-        self.itPos = itPos               # IT agent's [col, row] position
-        self.notitPos = notitPos         # List of Not IT agents' positions
+        self.board_width = board_width   
+        self.board_height = board_height
+        self.itPos = itPos      
+        self.notitPos = notitPos      
 
         # Get screen dimensions.
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
 
-        # Compute the grid cell size such that the entire board fits in the screen.
-        # For a given board, a larger number of cells yields a smaller grid size.
+        # Set the grid size based on the screen dimensions.
         computed_size = min(screen_width // board_width, screen_height // board_height)
         
         # For a standard board of 50x50, we want grid size 15.
@@ -275,9 +274,11 @@ def main():
     height = args.height
     debug_mode = args.debug
     itPos = [args.itPos[0], args.itPos[1]]
+
     if (itPos[0]<0 or itPos[0]>=width) or (itPos[1]<0 or itPos[1]>=height):
         raise ValueError("Invalid IT Player Position")
     notitPos = []
+    
     for i in range(0, len(args.notitPos), 2):
         if (args.notitPos[i]<0 or args.notitPos[i]>=width) or (args.notitPos[i+1]<0 or args.notitPos[i+1]>=height):
             raise ValueError("Invalid NotIT Player Position")
@@ -285,8 +286,12 @@ def main():
     
     if(len(notitPos) != args.num_not_it):
         raise ValueError("Number of Not It Players and Not It Player Positions do not match")
+    
+    # Creating Game Node and Starting the Game
     game_node = Game(width, height, notitPos, itPos, args.num_not_it, debug_mode)
     game_node.process = multiprocessing.Process(target=game_node.launch_node, name="Game Node")
     game_node.process.start()
+
+    
 if __name__ == '__main__':
     main()

@@ -2,7 +2,7 @@
 
 A multi-agent game simulation where an "IT" agent tries to catch "NotIT" agents in a grid-based environment.
 
-![Freezetag Game Demo](imgs/gameplay.gif)
+![Freezetag Game Demo](gifs/gameplay.gif)
 
 ## Overview
 

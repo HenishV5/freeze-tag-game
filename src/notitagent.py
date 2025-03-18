@@ -17,6 +17,7 @@ class NotITAgent(Node):
         self.start = False
 
     def on_start(self):
+        #Subscribing all require Topics
         self.subscribe("Start_Stop", self.start_call)
         self.subscribe("FreezeTopic", self.freeze_handler)
         self.subscribe("NotItTopic", self.othernotit_agent_handler)
@@ -25,6 +26,7 @@ class NotITAgent(Node):
 
     def run(self):
         while True:
+            #Breaking just in case of all agents are caught
             if self.agentFreeze:
                 message = agents()
                 message.uuid = self.agentuuid
@@ -33,6 +35,7 @@ class NotITAgent(Node):
                 message.freeze = True
                 self.publish("NotItTopic", message)
                 break
+            #Running the agent as soon as the start call arrives
             if self.start:
                 self.make_move()
                 message = agents()
@@ -44,6 +47,7 @@ class NotITAgent(Node):
                 time.sleep(1)
 
     def othernotit_agent_handler(self, topic, message):
+        # Handling the message from other Not-It agents
         try:
             message = agents.decode(message)
             if message.uuid != self.agentuuid:
@@ -53,9 +57,10 @@ class NotITAgent(Node):
         
 
     def on_stop(self):
-        pass
+        self.otherPos.clear()
 
     def freeze_handler(self, topic, message):
+        # Handling the freeze command and sending last location of the agent
         try:
             message = freezeCommand.decode(message)
             if message.id == self.agentuuid:
@@ -74,6 +79,7 @@ class NotITAgent(Node):
                 
 
     def make_move(self):
+        # making random moves
         movement = random.choice([[0, 1], [0, -1], [1, 0], [-1, 0]])
         if self.agentpos[0] + movement[0] >= 0 and self.agentpos[0] + movement[0] < self.width and self.agentpos[1] + movement[1] >= 0 and self.agentpos[1] + movement[1] < self.height:
             self.agentpos[0] += movement[0]
@@ -85,6 +91,7 @@ class NotITAgent(Node):
                     break
     
     def start_call(self, topic, message):
+        # Handling the start call
         try:
             message = start_stop.decode(message)
             if message.start:

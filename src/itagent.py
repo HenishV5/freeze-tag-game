@@ -17,6 +17,7 @@ class ITAgent(Node):
         self.notitAgentsPos = {}
 
     def on_start(self):
+        #Subscribing Required Topics
         self.subscribe("Start_Stop", self.start_call)
         self.subscribe("NotItTopic", self.getNotItPositions)
 
@@ -25,6 +26,7 @@ class ITAgent(Node):
             while True:
                 message = agents()
                 if self.start == True:
+                    #Breaking just in case of all agents are caught
                     if len(self.notitAgentsPos) == 0:
                         print("All Not It Agents Caught")
                         break
@@ -43,14 +45,18 @@ class ITAgent(Node):
         pass
 
     def start_call(self, topic, message):
+        #Handling Start Call
         try:
             message = start_stop.decode(message)
             if message.start:
+                #Delaying the start of the IT agent to handle synchronization
+                time.sleep(0.5)
                 self.start = True
         except Exception as e:
             print(f"Error handling Getting Start Call: {e}")
 
     def getNotItPositions(self, topic, message):
+        #Getting Other Players Positions
         try:
             message = agents.decode(message)
             self.notitAgentsPos[message.uuid] = [message.position[0], message.position[1], message.freeze]
@@ -71,7 +77,8 @@ class ITAgent(Node):
             targets = [(value[0], value[1]) for key, value in self.notitAgentsPos.items() if value[2] == False]
             if not targets:
                 return
-
+            
+            # Sorting targets by distance
             agentPos = (self.agentpos[0], self.agentpos[1])
             route = []
             remaining_targets = targets.copy()
@@ -90,7 +97,7 @@ class ITAgent(Node):
                 new_y += 1
             elif agentPos[1] > next_target[1]:
                 new_y -= 1
-            
+            # Explicit check for valid move
             if 0 <= new_x < self.width and 0 <= new_y < self.height:
                 self.agentpos = [new_x, new_y]
             else:
