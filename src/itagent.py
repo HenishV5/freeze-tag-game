@@ -15,6 +15,8 @@ class ITAgent(Node):
         self.freeze = False
         self.start = False
         self.notitAgentsPos = {}
+        self.notitAgentsPos[self.agentuuid] = [self.agentpos[0], self.agentpos[1], self.freeze]
+
 
     def on_start(self):
         #Subscribing Required Topics
@@ -58,6 +60,8 @@ class ITAgent(Node):
         try:
             message = agents.decode(message)
             self.notitAgentsPos[message.uuid] = [message.position[0], message.position[1], message.freeze]
+            if self.agentuuid in self.notitAgentsPos:
+                self.notitAgentsPos.pop(self.agentuuid)
         except Exception as e:
             print(f"Error Getting NotIt Agent Positions: {e}")
         
