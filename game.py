@@ -8,6 +8,8 @@ import tkinter as tk
 import tkinter.messagebox as messagebox
 from messages import agents, freezeCommand, start_stop
 import uuid
+from itagent import ITAgent
+from notitagent import NotITAgent
 
 
 
@@ -67,7 +69,7 @@ class Game(Node):
         itAgent = agents()
         itAgent.uuid = str(uuid.uuid1())
         self.itAgent_uuid = itAgent.uuid
-        itAgent.id = -1.0
+        itAgent.id = -1
         itAgent.position = [self.itPos[0], self.itPos[1]]
         itAgent.freeze = False
         self.agents[itAgent.uuid] = itAgent
@@ -119,7 +121,7 @@ class Game(Node):
                         count += 1
                     if count == self.num_not_it:
                         flag = False
-                    if value.id == -1.0:
+                    if value.id == -1:
                         continue
                     else:
                         if self.agents[self.itAgent_uuid].position == value.position:
@@ -145,178 +147,19 @@ class Game(Node):
             print(f"Error stopping the game: {e}")
 
     def agent_handlers(self, topic, message):
-        message = agents.decode(message)
-        if message.uuid in self.agents:
-            self.agents[message.uuid] = message
-            if self.debug_mode == True:
-                print(f"Agent {message.id} Position Updated: {message.position}")
-            
+        try:
+            message = agents.decode(message)
+            if message.uuid in self.agents:
+                self.agents[message.uuid] = message
+                if self.debug_mode == True:
+                    print(f"Agent {message.id} Position Updated: {message.position}")
+        except Exception as e:
+            print(f"Error handling agent message: {e}")        
 
     def active_status_management(self):
         pass
-        
-        
-    
 
 
-
-class ITAgent(Node):
-    def __init__(self, agent, width, height, debug_mode):
-        super().__init__()
-        self.agentuuid = agent.uuid
-        self.agentid = agent.id
-        self.agentpos = [agent.position[0], agent.position[1]]
-        self.agentFreeze = agent.freeze
-        self.width = width
-        self.height = height
-        self.debug_mode = debug_mode
-        self.freeze = False
-        self.start = False
-        self.notitAgentsPos = {}
-
-    def on_start(self):
-        self.subscribe("Start_Stop", self.start_call)
-        self.subscribe("NotItTopic", self.getNotItPositions)
-
-    def run(self):
-        while True:
-            message = agents()
-            if self.start == True:
-                self.make_move()
-                message.uuid = self.agentuuid
-                message.id = self.agentid
-                message.position = [self.agentpos[0], self.agentpos[1]]
-                message.freeze = self.agentFreeze
-                self.publish("ItTopic", message)
-                time.sleep(0.5)
-                if len(self.notitAgentsPos) == 0:
-                    print("All Not It Agents Caught")
-                    break
-
-    def on_stop(self):
-        pass
-
-    def start_call(self, topic, message):
-        message = start_stop.decode(message)
-        if message.start:
-            self.start = True
-
-    def getNotItPositions(self, topic, message):
-        message = agents.decode(message)
-        self.notitAgentsPos[message.uuid] = [message.position[0], message.position[1], message.freeze]
-        
-
-    def make_move(self):
-        minimum_distance = float('inf')
-        closest_position = None
-        keys_to_remove = []
-        for key, value in self.notitAgentsPos.items():
-            # If the not-it agent is frozen or has been caught (position equal to IT), mark for removal
-            if value[2] == True or self.agentpos == value[:2]:
-                keys_to_remove.append(key)
-                continue
-            distance = abs(self.agentpos[0] - value[0]) + abs(self.agentpos[1] - value[1])
-            if distance < minimum_distance:
-                minimum_distance = distance
-                closest_position = value
-        
-        # Remove caught or frozen agents after the loop
-        for key in keys_to_remove:
-            self.notitAgentsPos.pop(key, None)
-        
-        if closest_position is not None:    
-            if self.agentpos[0] < closest_position[0]:
-                self.agentpos[0] += 1
-            elif self.agentpos[0] > closest_position[0]:
-                self.agentpos[0] -= 1
-            elif self.agentpos[1] < closest_position[1]:
-                self.agentpos[1] += 1
-            elif self.agentpos[1] > closest_position[1]:
-                self.agentpos[1] -= 1
-        
-
-
-
-
-
-
-
-
-class NotITAgent(Node):
-    def __init__(self, agent, width, height, debug_mode):
-        super().__init__()
-        self.agentuuid = agent.uuid
-        self.agentid = agent.id
-        self.agentpos = [agent.position[0], agent.position[1]]
-        self.agentFreeze = agent.freeze
-        self.width = width
-        self.height = height
-        self.debug_mode = debug_mode
-        self.otherPos = {}
-        self.start = False
-
-    def on_start(self):
-        self.subscribe("Start_Stop", self.start_call)
-        self.subscribe("FreezeTopic", self.freeze_handler)
-        self.subscribe("NotItTopic", self.othernotit_agent_handler)
-        
-        
-
-    def run(self):
-        while True:
-            if self.agentFreeze:
-                break
-            if self.start:
-                self.make_move()
-                message = agents()
-                message.uuid = self.agentuuid
-                message.id = self.agentid
-                message.position = [self.agentpos[0], self.agentpos[1]]
-                message.freeze = self.agentFreeze
-                self.publish("NotItTopic", message)
-                time.sleep(1)
-
-    def othernotit_agent_handler(self, topic, message):
-        message = agents.decode(message)
-        if message.uuid != self.agentuuid:
-            self.otherPos[message.uuid] = message.position
-
-        
-
-    def on_stop(self):
-        pass
-
-    def freeze_handler(self, topic, message):
-        message = freezeCommand.decode(message)
-        if message.id == self.agentuuid:
-            if not self.agentFreeze:
-                print(f"Agent {self.agentid} Freezed")
-                self.agentFreeze = True
-                # Immediately publish the frozen update
-                update_msg = agents()
-                update_msg.uuid = self.agentuuid
-                update_msg.id = self.agentid
-                update_msg.position = [self.agentpos[0], self.agentpos[1]]
-                update_msg.freeze = True
-                self.publish("NotItTopic", update_msg)
-
-                
-
-    def make_move(self):
-        movement = random.choice([[0, 1], [0, -1], [1, 0], [-1, 0]])
-        if self.agentpos[0] + movement[0] >= 0 and self.agentpos[0] + movement[0] < self.width and self.agentpos[1] + movement[1] >= 0 and self.agentpos[1] + movement[1] < self.height:
-            self.agentpos[0] += movement[0]
-            self.agentpos[1] += movement[1]
-            for key, value in self.otherPos.items():
-                if self.agentpos[0] == value[0] and self.agentpos[1] == value[1]:
-                    self.agentpos[0] -= movement[0]
-                    self.agentpos[1] -= movement[1]
-                    break
-    
-    def start_call(self, topic, message):
-        message = start_stop.decode(message)
-        if message.start:
-            self.start = True
 
 
 class Grid(tk.Tk):
@@ -402,8 +245,6 @@ def main():
     itPos = [args.itPos[0], args.itPos[1]]
     if (itPos[0]<0 or itPos[0]>=width) or (itPos[1]<0 or itPos[1]>=height):
         raise ValueError("Invalid IT Player Position")
-        
-    print(args.debug)
     notitPos = []
     for i in range(0, len(args.notitPos), 2):
         if (args.notitPos[i]<0 or args.notitPos[i]>=width) or (args.notitPos[i+1]<0 or args.notitPos[i+1]>=height):
