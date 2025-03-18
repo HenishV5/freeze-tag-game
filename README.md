@@ -2,6 +2,8 @@
 
 A multi-agent game simulation where an "IT" agent tries to catch "NotIT" agents in a grid-based environment.
 
+![Freezetag Game Demo](imgs/gameplay.gif)
+
 ## Overview
 
 This project implements a classic game of Freezetag using a distributed node-based architecture with LCM (Lightweight Communications and Marshalling) for inter-process communication. The game features:
@@ -54,6 +56,15 @@ brew install python3
 ```
 
 #### Windows
+**Important Note for Windows Users:** LCM doesn't work well on Windows directly. We recommend using Windows Subsystem for Linux (WSL) with Ubuntu 22.04:
+
+1. Install WSL with Ubuntu 22.04:
+   ```
+   wsl --install -d Ubuntu-22.04
+   ```
+2. Follow the Ubuntu installation instructions within your WSL environment.
+
+If you must use native Windows:
 - Download the installer from [python.org](https://www.python.org/downloads/)
 - Run the installer
 - ✅ Check "Add Python to PATH"
@@ -61,7 +72,7 @@ brew install python3
 
 ### Step 3: Install System Dependencies for LCM
 
-#### Ubuntu/Debian
+#### Ubuntu/Debian (and WSL)
 ```bash
 sudo apt install build-essential libglib2.0-dev
 ```
@@ -71,20 +82,15 @@ sudo apt install build-essential libglib2.0-dev
 brew install glib
 ```
 
-#### Windows
-- Install Visual C++ Build Tools from [visualstudio.microsoft.com](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
-- Install GTK for Windows from [gtk.org](https://www.gtk.org/docs/installations/windows/)
-- Add GTK bin directory to your PATH
-
 ### Step 4: Set up Virtual Environment (Recommended)
 
 ```bash
-# Linux/macOS
+# Linux/macOS/WSL
 python3 -m pip install virtualenv
 python3 -m venv freezetag_env
 source freezetag_env/bin/activate
 
-# Windows
+# Windows (if not using WSL)
 pip install virtualenv
 python -m venv freezetag_env
 freezetag_env\Scripts\activate
@@ -108,10 +114,10 @@ pip install -r requirements.txt
 ## Running the Game
 
 ```bash
-# Linux/macOS
+# Linux/macOS/WSL
 python3 game.py --width 50 --height 50 --num-not-it 3 --notitPos 10 10 20 20 30 30 --itPos 40 40 --debug
 
-# Windows
+# Windows (if not using WSL)
 python game.py --width 50 --height 50 --num-not-it 3 --notitPos 10 10 20 20 30 30 --itPos 40 40 --debug
 ```
 
@@ -150,9 +156,9 @@ The game uses a distributed architecture where:
 - For Apple Silicon Macs, you might need to use Rosetta for some libraries
 
 ### Windows
-- If LCM installation fails, verify Visual C++ build tools are correctly installed
-- If you see "DLL not found" errors, ensure GTK libraries are in your PATH
-- For GUI display issues, try running the command prompt as administrator
+- **Recommended approach:** Use WSL with Ubuntu 22.04
+- If using WSL, you may need an X server like VcXsrv to display the GUI
+- If attempting native Windows installation, LCM may be unstable and require additional configuration
 
 ## Troubleshooting
 
@@ -166,12 +172,13 @@ The game uses a distributed architecture where:
 - **LCM Installation Problems**
   - Ubuntu/Debian: `sudo apt install build-essential libglib2.0-dev`
   - macOS: `brew install glib`
-  - Windows: Ensure Visual C++ build tools and GTK are installed
+  - Windows: We strongly recommend using WSL instead of native Windows for LCM
 
 - **GUI Does Not Display**
   - Verify tkinter is installed: `python -m tkinter`
   - Ubuntu/Debian: `sudo apt install python3-tk`
   - macOS: `brew install python-tk`
+  - WSL: Install an X server on Windows and export DISPLAY (e.g., `export DISPLAY=:0`)
 
 - **Agents Not Moving**
   - Enable debug mode to see process status: `--debug`
