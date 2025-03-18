@@ -25,6 +25,9 @@ class ITAgent(Node):
             while True:
                 message = agents()
                 if self.start == True:
+                    if len(self.notitAgentsPos) == 0:
+                        print("All Not It Agents Caught")
+                        break
                     self.make_move()
                     message.uuid = self.agentuuid
                     message.id = self.agentid
@@ -32,9 +35,7 @@ class ITAgent(Node):
                     message.freeze = self.agentFreeze
                     self.publish("ItTopic", message)
                     time.sleep(0.5)
-                    if len(self.notitAgentsPos) == 0:
-                        print("All Not It Agents Caught")
-                        break
+                    
         except Exception as e:
             print(f"Error running the IT Agent: {e}")
 
@@ -58,29 +59,41 @@ class ITAgent(Node):
         
 
     def make_move(self):
-        minimum_distance = float('inf')
-        closest_position = None
-        keys_to_remove = []
-        for key, value in self.notitAgentsPos.items():
-            # If the not-it agent is frozen or has been caught (position equal to IT), mark for removal
-            if value[2] == True or self.agentpos == value[:2]:
-                keys_to_remove.append(key)
-                continue
-            distance = abs(self.agentpos[0] - value[0]) + abs(self.agentpos[1] - value[1])
-            if distance < minimum_distance:
-                minimum_distance = distance
-                closest_position = value
-        
-        # Remove caught or frozen agents after the loop
-        for key in keys_to_remove:
-            self.notitAgentsPos.pop(key, None)
-        
-        if closest_position is not None:    
-            if self.agentpos[0] < closest_position[0]:
-                self.agentpos[0] += 1
-            elif self.agentpos[0] > closest_position[0]:
-                self.agentpos[0] -= 1
-            elif self.agentpos[1] < closest_position[1]:
-                self.agentpos[1] += 1
-            elif self.agentpos[1] > closest_position[1]:
-                self.agentpos[1] -= 1
+        try:
+            keys_to_remove = [
+                key for key, value in self.notitAgentsPos.items() if value[2] == True or self.agentpos == value[:2]
+            ]
+
+            # Remove caught or frozen agents after the loop
+            for key in keys_to_remove:
+                self.notitAgentsPos.pop(key, None)
+
+            targets = [(value[0], value[1]) for key, value in self.notitAgentsPos.items() if value[2] == False]
+            if not targets:
+                return
+
+            agentPos = (self.agentpos[0], self.agentpos[1])
+            route = []
+            remaining_targets = targets.copy()
+            while remaining_targets:
+                nearest = min(remaining_targets, key=lambda pos: abs(agentPos[0] - pos[0]) + abs(agentPos[1] - pos[1]))
+                route.append(nearest)
+                remaining_targets.remove(nearest)
+            next_target = route[0]
+
+            new_x, new_y = self.agentpos[0], self.agentpos[1]
+            if agentPos[0] < next_target[0]:
+                new_x += 1
+            elif agentPos[0] > next_target[0]:
+                new_x -= 1
+            elif agentPos[1] < next_target[1]:
+                new_y += 1
+            elif agentPos[1] > next_target[1]:
+                new_y -= 1
+            
+            if 0 <= new_x < self.width and 0 <= new_y < self.height:
+                self.agentpos = [new_x, new_y]
+            else:
+                print("Invalid move")
+        except Exception as e:
+            print(f"Error Making Move: {e}")

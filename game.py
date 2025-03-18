@@ -38,55 +38,57 @@ class Game(Node):
 
 
     def on_start(self):
-        if self.debug_mode == True:
-            print("Game Started...Initializing Agents")
-        
-        #Agents
-        self.agents = {}
+        try:
+            if self.debug_mode == True:
+                print("Game Started...Initializing Agents")
+            
+            #Agents
+            self.agents = {}
 
-        #Storing Process
-        self.processes = []
+            #Storing Process
+            self.processes = []
 
-        #Creating Not IT Agents Message
-        for i in range(self.num_not_it):
-            notitAgent = agents()
-            notitAgent.uuid = str(uuid.uuid1())
-            notitAgent.id = i
-            notitAgent.position = [self.notitPos[i][0], self.notitPos[i][1]]
-            notitAgent.freeze = False
-            self.agents[notitAgent.uuid] = notitAgent
-            #self.active_status.append(notitAgent.uuid)
-        
-        self.nodes = []
-        #Creating Not IT Agents
-        for i in self.agents:
-            notit_agent = NotITAgent(self.agents[i], self.width, self.height, self.debug_mode)
-            self.nodes.append(notit_agent)            
-        
+            #Creating Not IT Agents Message
+            for i in range(self.num_not_it):
+                notitAgent = agents()
+                notitAgent.uuid = str(uuid.uuid1())
+                notitAgent.id = i
+                notitAgent.position = [self.notitPos[i][0], self.notitPos[i][1]]
+                notitAgent.freeze = False
+                self.agents[notitAgent.uuid] = notitAgent
+                #self.active_status.append(notitAgent.uuid)
+            
+            self.nodes = []
+            #Creating Not IT Agents
+            for i in self.agents:
+                notit_agent = NotITAgent(self.agents[i], self.width, self.height, self.debug_mode)
+                self.nodes.append(notit_agent)            
+            
 
 
-        #Creating IT Agent Message
-        itAgent = agents()
-        itAgent.uuid = str(uuid.uuid1())
-        self.itAgent_uuid = itAgent.uuid
-        itAgent.id = -1
-        itAgent.position = [self.itPos[0], self.itPos[1]]
-        itAgent.freeze = False
-        self.agents[itAgent.uuid] = itAgent
-        self.active_status.append(itAgent.uuid)
+            #Creating IT Agent Message
+            itAgent = agents()
+            itAgent.uuid = str(uuid.uuid1())
+            self.itAgent_uuid = itAgent.uuid
+            itAgent.id = -1
+            itAgent.position = [self.itPos[0], self.itPos[1]]
+            itAgent.freeze = False
+            self.agents[itAgent.uuid] = itAgent
+            self.active_status.append(itAgent.uuid)
 
-        #Subscribing to Topics
-        self.subscribe("NotItTopic", self.agent_handlers)
-        self.subscribe("ItTopic", self.agent_handlers)
-        
-        #Creating IT Agents
-        it_agent = ITAgent(itAgent, self.width, self.height, self.debug_mode)
-        self.nodes.append(it_agent)
+            #Subscribing to Topics
+            self.subscribe("NotItTopic", self.agent_handlers)
+            self.subscribe("ItTopic", self.agent_handlers)
+            
+            #Creating IT Agents
+            it_agent = ITAgent(itAgent, self.width, self.height, self.debug_mode)
+            self.nodes.append(it_agent)
 
-        self.gui = Grid(self.width, self.height, self.itPos, self.notitPos)
-        self.gui.update_grid(self.agents)
-        time.sleep(2)
-
+            self.gui = Grid(self.width, self.height, self.itPos, self.notitPos)
+            self.gui.update_grid(self.agents)
+            time.sleep(2)
+        except Exception as e:
+            print(f"Error starting the Game Node: {e}")
         
 
         
@@ -221,16 +223,10 @@ class Grid(tk.Tk):
             self.notitAgents.append(rect)
 
     def update_grid(self, agents):
-        """
-        agents: a dictionary where each value has:
-          - .id (with -1 for the IT agent)
-          - .position (a [col, row] list)
-          - .freeze (a Boolean indicating if a Not IT agent is frozen)
-        """
         itPos = None
         notitPosList = []
         notitFreezeList = []
-        for key, value in agents.items():
+        for _, value in agents.items():
             if value.id == -1:
                 itPos = value.position
             else:
