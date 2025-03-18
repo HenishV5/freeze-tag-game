@@ -21,10 +21,6 @@ This project implements a classic game of Freezetag using a distributed node-bas
   ```
   lcm>=1.5.0
   numpy>=1.20.0
-  tkinter
-  uuid
-  multiprocessing
-  argparse
   ```
 
 > **Note:** `tkinter`, `uuid`, `multiprocessing`, and `argparse` are part of the Python standard library.
