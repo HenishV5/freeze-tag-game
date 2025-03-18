@@ -163,60 +163,94 @@ class Game(Node):
 
 
 class Grid(tk.Tk):
-    def __init__(self, width, height, itPos, notitPos):
+    def __init__(self, board_width, board_height, itPos, notitPos):
         tk.Tk.__init__(self)
-        self.width = width
-        self.height = height
-        self.itPos = itPos
-        self.notitPos = notitPos
-        self.grid_size = 20
-        self.canvas = tk.Canvas(self, width=width*self.grid_size, height=height*self.grid_size)
-        self.canvas.pack()
         
+        self.board_width = board_width   # Number of columns
+        self.board_height = board_height # Number of rows
+        self.itPos = itPos               # IT agent's [col, row] position
+        self.notitPos = notitPos         # List of Not IT agents' positions
 
-        # Creating Grid lines
-        for i in range(1, self.width*self.grid_size, self.grid_size):
-            self.canvas.create_line(i, 0, i, self.height*self.grid_size)
-        for i in range(1, self.height*self.grid_size, self.grid_size):
-            self.canvas.create_line(0, i, self.width*self.grid_size, i)
+        # Get screen dimensions.
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
 
-        # Creating IT Agent
-        self.itAgent = self.canvas.create_rectangle(self.itPos[0]*self.grid_size, self.itPos[1]*self.grid_size,
-                                                    self.itPos[0]*self.grid_size+self.grid_size, self.itPos[1]*self.grid_size+self.grid_size, fill="green")
-        # Creating Not IT Agents
+        # Compute the grid cell size such that the entire board fits in the screen.
+        # For a given board, a larger number of cells yields a smaller grid size.
+        computed_size = min(screen_width // board_width, screen_height // board_height)
+        
+        # For a standard board of 50x50, we want grid size 15.
+        if board_width == 50 and board_height == 50:
+            self.grid_size = 18
+        else:
+            self.grid_size = computed_size
+
+        # Create a canvas sized exactly for the grid.
+        self.canvas = tk.Canvas(self, width=board_width * self.grid_size, 
+                                     height=board_height * self.grid_size)
+        self.canvas.pack()
+
+        # Draw vertical lines (including the left and right edges)
+        for col in range(self.board_width + 2):
+            x = col * self.grid_size
+            self.canvas.create_line(x, 0, x, self.board_height * self.grid_size)
+
+        # Draw horizontal lines (including the top and bottom edges)
+        for row in range(self.board_height + 2):
+            y = row * self.grid_size
+            self.canvas.create_line(0, y, self.board_width * self.grid_size, y)
+
+
+        # Draw the IT agent.
+        self.itAgent = self.canvas.create_rectangle(
+            itPos[0] * self.grid_size, itPos[1] * self.grid_size,
+            itPos[0] * self.grid_size + self.grid_size, itPos[1] * self.grid_size + self.grid_size,
+            fill="green"
+        )
+
+        # Draw the Not IT agents.
         self.notitAgents = []
         for pos in self.notitPos:
-            self.notitAgents.append(
-                self.canvas.create_rectangle(pos[0]*self.grid_size, pos[1]*self.grid_size, pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size, fill="red")
+            rect = self.canvas.create_rectangle(
+                pos[0] * self.grid_size, pos[1] * self.grid_size,
+                pos[0] * self.grid_size + self.grid_size, pos[1] * self.grid_size + self.grid_size,
+                fill="red"
             )
+            self.notitAgents.append(rect)
 
     def update_grid(self, agents):
+        """
+        agents: a dictionary where each value has:
+          - .id (with -1 for the IT agent)
+          - .position (a [col, row] list)
+          - .freeze (a Boolean indicating if a Not IT agent is frozen)
+        """
         itPos = None
         notitPosList = []
         notitFreezeList = []
         for key, value in agents.items():
             if value.id == -1:
-                itPos = [value.position[0], value.position[1]]
+                itPos = value.position
             else:
                 notitPosList.append(value.position)
                 notitFreezeList.append(value.freeze)
 
         if itPos is not None:
             self.canvas.coords(self.itAgent,
-                            itPos[0]*self.grid_size, itPos[1]*self.grid_size,
-                            itPos[0]*self.grid_size+self.grid_size, itPos[1]*self.grid_size+self.grid_size)
+                itPos[0] * self.grid_size, itPos[1] * self.grid_size,
+                itPos[0] * self.grid_size + self.grid_size, itPos[1] * self.grid_size + self.grid_size
+            )
 
         for i, pos in enumerate(notitPosList):
             if i < len(self.notitAgents):
                 self.canvas.coords(self.notitAgents[i],
-                                pos[0]*self.grid_size, pos[1]*self.grid_size,
-                                pos[0]*self.grid_size+self.grid_size, pos[1]*self.grid_size+self.grid_size)
-                # Change fill color: blue if frozen, red otherwise
+                    pos[0] * self.grid_size, pos[1] * self.grid_size,
+                    pos[0] * self.grid_size + self.grid_size, pos[1] * self.grid_size + self.grid_size
+                )
                 fill_color = "blue" if notitFreezeList[i] else "red"
                 self.canvas.itemconfig(self.notitAgents[i], fill=fill_color)
 
-        tk.Tk.update_idletasks(self)
-
+        self.update_idletasks()
 
     def on_closing(self):
         self.destroy()

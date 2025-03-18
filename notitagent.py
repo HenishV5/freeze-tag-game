@@ -1,4 +1,3 @@
-import multiprocessing
 import time
 from node import Node
 from messages import agents, start_stop, freezeCommand
