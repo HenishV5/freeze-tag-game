@@ -78,7 +78,19 @@ sudo apt install build-essential libglib2.0-dev
 brew install glib
 ```
 
-### Step 4: Set up Environment (Recommended)
+### Step 4: Navigate to Project Directory
+
+**IMPORTANT:** Before setting up the environment, navigate to the project directory where `game.py` is located:
+
+```bash
+# Navigate to the project directory
+cd path/to/freezetag/project
+
+# Verify you're in the right directory
+ls  # Should show game.py, requirements.txt, etc.
+```
+
+### Step 5: Set up Environment (Recommended)
 
 #### Option 1: Using Conda (Recommended)
 ```bash
@@ -94,7 +106,7 @@ export PATH="$HOME/miniconda/bin:$PATH"
 conda create -n freezetag_env python=3.10
 conda activate freezetag_env
 
-# Install dependencies
+# Install dependencies (make sure you're in the project directory)
 pip install -r requirements.txt
 
 # If you encounter issues with LCM in conda, you may need:
@@ -120,9 +132,10 @@ virtualenv freezetag_env
 freezetag_env\Scripts\activate
 ```
 
-### Step 5: Install Dependencies
+### Step 6: Install Dependencies
 
 ```bash
+# Make sure you're in the project directory with requirements.txt
 pip install -r requirements.txt
 ```
 
@@ -138,6 +151,7 @@ pip install -r requirements.txt
 ## Running the Game
 
 ```bash
+# Make sure you're in the project directory and have activated your environment
 # Linux/macOS/WSL
 python3 game.py --width 50 --height 50 --num-not-it 3 --notitPos 10 10 20 20 30 30 --itPos 40 40 --debug
 
@@ -187,6 +201,11 @@ The game uses a distributed architecture where:
 ## Troubleshooting
 
 ### Common Issues
+
+- **Working Directory Issues**
+  - Make sure you're in the project directory containing `game.py` and `requirements.txt`
+  - All commands should be run from this directory
+  - Use `pwd` to verify your current directory on Linux/macOS or `cd` on Windows
 
 - **Python Version Issues**
   - This project requires Python 3.6+
